@@ -68,82 +68,116 @@ function updateChildren (newNode, oldNode) {
   //   newNode && newNode.outerHTML
   // )
   // }
-  var oldChild, newChild, morphed, oldMatch
+  var newChildren = newNode.childNodes
+  var oldChildren = oldNode.childNodes
 
-  // The offset is only ever increased, and used for [i - offset] in the loop
-  var offset = 0
+  if (newChildren.length === 1 && oldChildren.length === 1) {
+    var newChild = newChildren[0]
+    var oldChild = oldChildren[0]
+    walk(newChild, oldChild)
+  } else if (newChildren.length && oldChildren.length) {
+    if (newChildren === oldChildren) return
 
-  for (var i = 0; ; i++) {
-    oldChild = oldNode.childNodes[i]
-    newChild = newNode.childNodes[i - offset]
-    // if (DEBUG) {
-    //   console.log(
-    //   '===\n- old\n  %s\n- new\n  %s',
-    //   oldChild && oldChild.outerHTML,
-    //   newChild && newChild.outerHTML
-    // )
-    // }
-    // Both nodes are empty, do nothing
-    if (!oldChild && !newChild) {
-      break
+    var prefix = diffPrefix(newChildren, oldChildren)
+    var suffix = diffSuffix(newChildren, oldChildren)
 
-    // There is no new child, remove old
-    } else if (!newChild) {
-      oldNode.removeChild(oldChild)
-      i--
+    var newStart = prefix
+    var oldStart = prefix
+    var newEnd = newChildren.length - suffix
+    var oldEnd = oldChildren.length - suffix
 
-    // There is no old child, add new
-    } else if (!oldChild) {
-      oldNode.appendChild(newChild)
-      offset++
+    if (newStart > newEnd && oldStart > oldEnd) return
 
-    // Both nodes are the same, morph
-    } else if (same(newChild, oldChild)) {
-      morphed = walk(newChild, oldChild)
-      if (morphed !== oldChild) {
-        oldNode.replaceChild(morphed, oldChild)
-        offset++
-      }
-
-    // Both nodes do not share an ID or a placeholder, try reorder
-    } else {
-      oldMatch = null
-
-      // Try and find a similar node somewhere in the tree
-      for (var j = i; j < oldNode.childNodes.length; j++) {
-        if (same(oldNode.childNodes[j], newChild)) {
-          oldMatch = oldNode.childNodes[j]
-          break
-        }
-      }
-
-      // If there was a node with the same ID or placeholder in the old list
-      if (oldMatch) {
-        morphed = walk(newChild, oldMatch)
-        if (morphed !== oldMatch) offset++
-        oldNode.insertBefore(morphed, oldChild)
-
-      // It's safe to morph two nodes in-place if neither has an ID
-      } else if (!newChild.id && !oldChild.id) {
-        morphed = walk(newChild, oldChild)
-        if (morphed !== oldChild) {
-          oldNode.replaceChild(morphed, oldChild)
-          offset++
-        }
-
-      // Insert the node at the index if we couldn't morph or find a matching node
-      } else {
-        oldNode.insertBefore(newChild, oldChild)
-        offset++
-      }
-    }
+  } else {
+    removeChildren(oldNode, oldChildren)
+    appendChildren(oldNode, newChildren)
   }
 }
 
-function same (a, b) {
-  if (a.id) return a.id === b.id
+function diffPrefix (s1, s2) {
+  var k = 0
+  var start1 = 0
+  var start2 = 0
+  var end1 = s1.length - 1
+  var end2 = s2.length - 1
+  var c1, c2
+  while (
+    start1 <= end1 &&
+    start2 <= end2 &&
+    canUpdate(c1 = s1[start1], c2 = s2[start2])
+  ) {
+    walk(c1, c2)
+    start1++
+    start2++
+    k++
+  }
+  return k
+}
+
+function diffSuffix (s1, s2) {
+  var k = 0
+  var start1 = 0
+  var start2 = 0
+  var end1 = s1.length - 1
+  var end2 = s2.length - 1
+  var c1, c2
+  while (
+    start1 <= end1 &&
+    start2 <= end2 &&
+    canUpdate(c1 = s1[end1], c2 = s2[end2])
+  ) {
+    walk(c1, c2)
+    end1--
+    end2--
+    k++
+  }
+  return k
+}
+
+function appendChildren (
+  parent,
+  children,
+  start = 0,
+  end = children.length - 1,
+  beforeNode
+) {
+  var ref = start
+  while (start <= end) {
+    var ch = children[ref]
+    parent.insertBefore(ch, beforeNode)
+    start++
+  }
+}
+
+function removeChildren (
+  parent,
+  children,
+  start = 0,
+  end = children.length - 1
+) {
+  var cleared
+  var ref = start
+  if (parent.childNodes.length === end - start + 1) {
+    parent.textContent = ''
+    cleared = true
+  }
+  while (start <= end) {
+    var ch = children[ref]
+    if (!cleared) parent.removeChild(ch)
+    start++
+  }
+}
+
+function canUpdate (a, b) {
   if (a.isSameNode) return a.isSameNode(b)
-  if (a.tagName !== b.tagName) return false
-  if (a.type === TEXT_NODE) return a.nodeValue === b.nodeValue
+  if (a.tagName === b.tagName) return true
   return false
 }
+
+// function same (a, b) {
+//   if (a.id) return a.id === b.id
+//   if (a.isSameNode) return a.isSameNode(b)
+//   if (a.tagName !== b.tagName) return false
+//   if (a.type === TEXT_NODE) return a.nodeValue === b.nodeValue
+//   return false
+// }
