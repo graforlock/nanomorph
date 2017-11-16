@@ -88,6 +88,11 @@ function updateChildren (newNode, oldNode) {
 
     if (newStart > newEnd && oldStart > oldEnd) return
 
+    if (newStart <= newEnd && oldStart > oldEnd) {
+      appendChildren(oldNode, newChildren, newStart, newEnd, oldChildren[oldStart])
+    } else if (oldStart <= oldEnd && newStart > newEnd) {
+      removeChildren(oldNode, oldChildren, oldStart, oldEnd)
+    }
   } else {
     removeChildren(oldNode, oldChildren)
     appendChildren(oldNode, newChildren)
