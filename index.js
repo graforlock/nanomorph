@@ -7,7 +7,6 @@ var TEXT_NODE = 3
 
 module.exports = nanomorph
 
-
 // Morph one tree into another tree
 //
 // no parent
@@ -95,19 +94,19 @@ function updateChildren (newNode, oldNode) {
     } else if (oldStart <= oldEnd && newStart > newEnd) {
       removeChildren(oldNode, oldChildren, oldStart, oldEnd)
     } else {
-        var diffPath = []
+      var diffPath = []
 
-        diff(oldChildren, newChildren, function (px, py, x, y) {
-            if (x === px) {
-                diffPath.unshift('INSERT')
-            } else if (y === py) {
-                diffPath.unshift('DELETE')
-            } else {
-                diffPath.unshift('UPDATE')
-            }
-        }, canPatch)
-          
-        applyDiff(nodeA, oldChildren, newChildren, diffPath, walk)
+      diff(oldChildren, newChildren, function (px, py, x, y) {
+        if (x === px) {
+          diffPath.unshift('INSERT')
+        } else if (y === py) {
+          diffPath.unshift('DELETE')
+        } else {
+          diffPath.unshift('UPDATE')
+        }
+      }, canPatch)
+
+      applyDiff(oldNode, oldChildren, newChildren, diffPath, walk)
     }
   } else {
     removeChildren(oldNode, oldChildren)
@@ -116,21 +115,21 @@ function updateChildren (newNode, oldNode) {
 }
 
 function applyDiff (parent, a, b, diff, update) {
-    var offsetA = 0
-    var offsetB = 0
-    for (var i = 0; i < diff.length; i++) {
-      if (diff[i] === 'DELETE') {
-        parent.removeChild(a[i + offsetA])
-        --offsetA
-        --offsetB
-      } else if (diff[i] === 'INSERT') {
-        parent.insertBefore(b[i + offsetB], a[i + offsetA])
-        --offsetB
-      } else {
-        update(a[i + offsetA], b[i + offsetB])
-      }
+  var offsetA = 0
+  var offsetB = 0
+  for (var i = 0; i < diff.length; i++) {
+    if (diff[i] === 'DELETE') {
+      parent.removeChild(a[i + offsetA])
+      --offsetA
+      --offsetB
+    } else if (diff[i] === 'INSERT') {
+      parent.insertBefore(b[i + offsetB], a[i + offsetA])
+      --offsetB
+    } else {
+      update(a[i + offsetA], b[i + offsetB])
     }
   }
+}
 
 function diffPrefix (s1, s2) {
   var k = 0
@@ -174,9 +173,7 @@ function diffSuffix (s1, s2) {
 
 function appendChildren (
   parent,
-  children,
-  start = 0,
-  end = children.length - 1,
+  children, start = 0 , end = children.length - 1 ,
   beforeNode
 ) {
   var ref = start
@@ -189,9 +186,7 @@ function appendChildren (
 
 function removeChildren (
   parent,
-  children,
-  start = 0,
-  end = children.length - 1
+  children, start = 0 , end = children.length - 1
 ) {
   var cleared
   var ref = start
@@ -207,11 +202,10 @@ function removeChildren (
 }
 
 function canPatch (nodeA, nodeB) {
-    if (nodeA.tagName === nodeB.tagName) return true
+  if (nodeA.tagName === nodeB.tagName) return true
 
-    return false
+  return false
 }
-
 
 // function canUpdate (a, b) {
 //   if (a.isSameNode) return a.isSameNode(b)
