@@ -1,10 +1,12 @@
 var assert = require('assert')
 var morph = require('./lib/morph')
+var diff = require('./lib/diff')
 
 var TEXT_NODE = 3
 // var DEBUG = false
 
 module.exports = nanomorph
+
 
 // Morph one tree into another tree
 //
@@ -92,12 +94,43 @@ function updateChildren (newNode, oldNode) {
       appendChildren(oldNode, newChildren, newStart, newEnd, oldChildren[oldStart])
     } else if (oldStart <= oldEnd && newStart > newEnd) {
       removeChildren(oldNode, oldChildren, oldStart, oldEnd)
+    } else {
+        var diffPath = []
+
+        diff(oldChildren, newChildren, function (px, py, x, y) {
+            if (x === px) {
+                diffPath.unshift('INSERT')
+            } else if (y === py) {
+                diffPath.unshift('DELETE')
+            } else {
+                diffPath.unshift('UPDATE')
+            }
+        }, canPatch)
+          
+        applyDiff(nodeA, oldChildren, newChildren, diffPath, walk)
     }
   } else {
     removeChildren(oldNode, oldChildren)
     appendChildren(oldNode, newChildren)
   }
 }
+
+function applyDiff (parent, a, b, diff, update) {
+    var offsetA = 0
+    var offsetB = 0
+    for (var i = 0; i < diff.length; i++) {
+      if (diff[i] === 'DELETE') {
+        parent.removeChild(a[i + offsetA])
+        --offsetA
+        --offsetB
+      } else if (diff[i] === 'INSERT') {
+        parent.insertBefore(b[i + offsetB], a[i + offsetA])
+        --offsetB
+      } else {
+        update(a[i + offsetA], b[i + offsetB])
+      }
+    }
+  }
 
 function diffPrefix (s1, s2) {
   var k = 0
@@ -109,7 +142,7 @@ function diffPrefix (s1, s2) {
   while (
     start1 <= end1 &&
     start2 <= end2 &&
-    canUpdate(c1 = s1[start1], c2 = s2[start2])
+    canPatch(c1 = s1[start1], c2 = s2[start2])
   ) {
     walk(c1, c2)
     start1++
@@ -129,7 +162,7 @@ function diffSuffix (s1, s2) {
   while (
     start1 <= end1 &&
     start2 <= end2 &&
-    canUpdate(c1 = s1[end1], c2 = s2[end2])
+    canPatch(c1 = s1[end1], c2 = s2[end2])
   ) {
     walk(c1, c2)
     end1--
@@ -173,11 +206,18 @@ function removeChildren (
   }
 }
 
-function canUpdate (a, b) {
-  if (a.isSameNode) return a.isSameNode(b)
-  if (a.tagName === b.tagName) return true
-  return false
+function canPatch (nodeA, nodeB) {
+    if (nodeA.tagName === nodeB.tagName) return true
+
+    return false
 }
+
+
+// function canUpdate (a, b) {
+//   if (a.isSameNode) return a.isSameNode(b)
+//   if (a.tagName === b.tagName) return true
+//   return false
+// }
 
 // function same (a, b) {
 //   if (a.id) return a.id === b.id
