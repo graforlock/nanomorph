@@ -2,7 +2,6 @@ var assert = require('assert')
 var morph = require('./lib/morph')
 var diff = require('./lib/diff')
 
-var TEXT_NODE = 3
 // var DEBUG = false
 
 module.exports = nanomorph
@@ -44,6 +43,7 @@ function walk (newNode, oldNode) {
   //   newNode && newNode.outerHTML
   // )
   // }
+
   if (!oldNode) {
     return newNode
   } else if (!newNode) {
@@ -53,8 +53,8 @@ function walk (newNode, oldNode) {
   } else if (newNode.tagName !== oldNode.tagName) {
     return newNode
   } else {
-    morph(newNode, oldNode)
     updateChildren(newNode, oldNode)
+    morph(newNode, oldNode)
     return oldNode
   }
 }
@@ -69,33 +69,38 @@ function updateChildren (newNode, oldNode) {
   //   newNode && newNode.outerHTML
   // )
   // }
+
   var newChildren = newNode.childNodes
   var oldChildren = oldNode.childNodes
+  var newChild = newChildren[0]
+  var oldChild = oldChildren[0]
 
   if (newChildren.length === 1 && oldChildren.length === 1) {
-    var newChild = newChildren[0]
-    var oldChild = oldChildren[0]
-    walk(newChild, oldChild)
+    if (canPatch(newChild, oldChild)) {
+      walk(newChild, oldChild)
+    } else {
+      oldNode.replaceChild(newChild, oldChild)
+    }
   } else if (newChildren.length && oldChildren.length) {
     if (newChildren === oldChildren) return
 
-    var prefix = diffPrefix(newChildren, oldChildren)
-    var suffix = diffSuffix(newChildren, oldChildren)
+    // var prefix = diffPrefix(newChildren, oldChildren)
+    // var suffix = diffSuffix(newChildren, oldChildren)
 
-    var newStart = prefix
-    var oldStart = prefix
-    var newEnd = newChildren.length - suffix
-    var oldEnd = oldChildren.length - suffix
+    // var newStart = prefix
+    // var oldStart = prefix
+    // var newEnd = newChildren.length - suffix
+    // var oldEnd = oldChildren.length - suffix
 
-    if (newStart > newEnd && oldStart > oldEnd) return
+    // if (newStart > newEnd && oldStart > oldEnd) return
 
-    if (newStart <= newEnd && oldStart > oldEnd) {
-      appendChildren(oldNode, newChildren, newStart, newEnd, oldChildren[oldStart])
-    } else if (oldStart <= oldEnd && newStart > newEnd) {
-      removeChildren(oldNode, oldChildren, oldStart, oldEnd)
-    } else {
+    // if (newStart <= newEnd && oldStart > oldEnd) {
+    //   appendChildren(oldNode, newChildren, newStart, newEnd, oldChildren[oldStart])
+    // } else if (oldStart <= oldEnd && newStart > newEnd) {
+    //   removeChildren(oldNode, oldChildren, oldStart, oldEnd)
+    // } else {
       var diffPath = []
-
+      var start = performance.now()
       diff(oldChildren, newChildren, function (px, py, x, y) {
         if (x === px) {
           diffPath.unshift('INSERT')
@@ -105,9 +110,8 @@ function updateChildren (newNode, oldNode) {
           diffPath.unshift('UPDATE')
         }
       }, canPatch)
-
       applyDiff(oldNode, oldChildren, newChildren, diffPath, walk)
-    }
+    // }
   } else {
     removeChildren(oldNode, oldChildren)
     appendChildren(oldNode, newChildren)
@@ -126,7 +130,7 @@ function applyDiff (parent, a, b, diff, update) {
       parent.insertBefore(b[i + offsetB], a[i + offsetA])
       --offsetB
     } else {
-      update(a[i + offsetA], b[i + offsetB])
+      update(b[i + offsetB], a[i + offsetA])
     }
   }
 }
@@ -173,7 +177,7 @@ function diffSuffix (s1, s2) {
 
 function appendChildren (
   parent,
-  children, start = 0 , end = children.length - 1 ,
+  children, start = 0, end = children.length - 1,
   beforeNode
 ) {
   var ref = start
@@ -186,7 +190,7 @@ function appendChildren (
 
 function removeChildren (
   parent,
-  children, start = 0 , end = children.length - 1
+  children, start = 0, end = children.length - 1
 ) {
   var cleared
   var ref = start
@@ -202,7 +206,8 @@ function removeChildren (
 }
 
 function canPatch (nodeA, nodeB) {
-  if (nodeA.tagName === nodeB.tagName) return true
+  if (nodeA.tagName && nodeB.tagName) nodeA.tagName === nodeB.tagName
+  if (nodeA === nodeB) return true
 
   return false
 }
