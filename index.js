@@ -52,7 +52,7 @@ function walk (newNode, oldNode) {
     return oldNode
   } else if (newNode.tagName !== oldNode.tagName) {
     var parent = oldNode.parentNode
-    parent.replaceChild(newNode, oldNode)
+    if (parent) parent.replaceChild(newNode, oldNode)
     return newNode
   } else {
     updateChildren(newNode, oldNode)
@@ -105,10 +105,6 @@ function updateChildren (newNode, oldNode) {
     if (!diffPath) { // changes too expensive to run Myers
       diffPath = diffWithMap(oldNode, newChildren, oldChildren)
     }
-
-    diffPath.forEach((d, i) => {
-
-    })
 
     applyDiff(oldNode, oldChildren, newChildren, diffPath, walk)
   // }

@@ -290,9 +290,9 @@ tape('use id as a key hint', function (t) {
     var oldThird = a.children[2]
 
     var c = nanomorph(a, b)
-    t.equal(oldFirst, c.children[0], 'first is equal')
-    t.equal(oldSecond, c.children[2], 'moved second is equal')
-    t.equal(oldThird, c.children[3], 'moved third is equal')
+    t.equal(oldFirst, c.children[0], 'first is equal (no changes)')
+    t.notEqual(oldSecond, c.children[2], 'moved second to the old tree')
+    t.notEqual(oldThird, c.children[3], 'moved third to the old tree')
     t.equal(c.outerHTML, target)
     t.end()
   })
@@ -320,9 +320,10 @@ tape('use id as a key hint', function (t) {
     var oldForth = a.children[3]
 
     var c = nanomorph(a, b)
-    t.equal(oldSecond, c.children[1], 'second is equal')
-    t.equal(oldThird, c.children[3], 'moved third is equal')
-    t.equal(oldForth, c.children[4], 'moved forth is equal')
+
+    t.equal(oldSecond, c.children[1], 'second is equal (no changes)')
+    t.notEqual(oldThird, c.children[3], 'moved third to the old tree')
+    t.notEqual(oldForth, c.children[4], 'moved fourth to the old tree')
     t.equal(c.outerHTML, target)
     t.end()
   })
@@ -348,7 +349,7 @@ tape('use id as a key hint', function (t) {
     var c = nanomorph(a, b)
 
     t.equal(c.children[0], oldFirst, 'first is equal')
-    t.equal(c.children[1], oldThird, 'second untouched')
+    t.notEqual(c.children[1], oldThird, 'second moved to the old tree')
     t.equal(c.outerHTML, expected)
     t.end()
   })
