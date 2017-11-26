@@ -1,6 +1,6 @@
 var assert = require('assert')
 var morph = require('./lib/morph')
-var diff = require('./lib/diff')
+var diffMyers = require('./lib/diff')
 
 // var DEBUG = false
 
@@ -51,6 +51,8 @@ function walk (newNode, oldNode) {
   } else if (newNode.isSameNode && newNode.isSameNode(oldNode)) {
     return oldNode
   } else if (newNode.tagName !== oldNode.tagName) {
+    var parent = oldNode.parentNode
+    parent.replaceChild(newNode, oldNode)
     return newNode
   } else {
     updateChildren(newNode, oldNode)
@@ -99,19 +101,17 @@ function updateChildren (newNode, oldNode) {
     // } else if (oldStart <= oldEnd && newStart > newEnd) {
     //   removeChildren(oldNode, oldChildren, oldStart, oldEnd)
     // } else {
-      var diffPath = []
-      var start = performance.now()
-      diff(oldChildren, newChildren, function (px, py, x, y) {
-        if (x === px) {
-          diffPath.unshift('INSERT')
-        } else if (y === py) {
-          diffPath.unshift('DELETE')
-        } else {
-          diffPath.unshift('UPDATE')
-        }
-      }, canPatch)
-      applyDiff(oldNode, oldChildren, newChildren, diffPath, walk)
-    // }
+    var diffPath = diffMyers(oldChildren, newChildren, canPatch)
+    if (!diffPath) { // changes too expensive to run Myers
+      diffPath = diffWithMap(oldNode, newChildren, oldChildren)
+    }
+
+    diffPath.forEach((d, i) => {
+
+    })
+
+    applyDiff(oldNode, oldChildren, newChildren, diffPath, walk)
+  // }
   } else {
     removeChildren(oldNode, oldChildren)
     appendChildren(oldNode, newChildren)
@@ -127,7 +127,7 @@ function applyDiff (parent, a, b, diff, update) {
       --offsetA
       --offsetB
     } else if (diff[i] === 'INSERT') {
-      parent.insertBefore(b[i + offsetB], a[i + offsetA])
+      if (b[i + offsetB]) parent.insertBefore(b[i + offsetB], a[i + offsetA])
       --offsetB
     } else {
       update(b[i + offsetB], a[i + offsetA])
@@ -225,3 +225,99 @@ function canPatch (nodeA, nodeB) {
 //   if (a.type === TEXT_NODE) return a.nodeValue === b.nodeValue
 //   return false
 // }
+
+function diffWithMap (
+  parent,
+  children,
+  oldChildren,
+  newStart = 0,
+  newEnd = children.length - 1,
+  oldStart = 0,
+  oldEnd = oldChildren.length - 1
+) {
+  var keymap = {}
+  var unkeyed = []
+  var idxUnkeyed = 0
+  var ch
+  var oldCh
+  var k
+  var idxInOld
+  var key
+
+  var newLen = newEnd - newStart + 1
+  var oldLen = oldEnd - oldStart + 1
+  var minLen = Math.min(newLen, oldLen)
+  var tresh = Array(minLen + 1)
+  tresh[0] = -1
+
+  for (var i = 1; i < tresh.length; i++) {
+    tresh[i] = oldEnd + 1
+  }
+  var link = Array(minLen)
+
+  for (i = oldStart; i <= oldEnd; i++) {
+    oldCh = oldChildren[i]
+    key = oldCh.key
+    // if (key != null) {
+    //   keymap[key] = i
+    // } else {
+      unkeyed.push(i)
+    // }
+  }
+
+  for (i = newStart; i <= newEnd; i++) {
+    ch = children[i]
+    idxInOld = ch.key /* == null */ ? unkeyed[idxUnkeyed++] : keymap[ch.key]
+    if (idxInOld /* != null */) {
+      k = findK(tresh, idxInOld)
+      if (k >= 0) {
+        tresh[k] = idxInOld
+        link[k] = { newi: i, oldi: idxInOld, prev: link[k - 1] }
+      }
+    }
+  }
+
+  k = tresh.length - 1
+  while (tresh[k] > oldEnd) k--
+
+  var ptr = link[k]
+  var diff = Array(oldLen + newLen - k)
+  var curNewi = newEnd
+  var curOldi = oldEnd
+  var d = diff.length - 1
+  while (ptr) {
+    const { newi, oldi } = ptr
+    while (curNewi > newi) {
+      diff[d--] = 'INSERT'
+      curNewi--
+    }
+    while (curOldi > oldi) {
+      diff[d--] = 'DELETE'
+      curOldi--
+    }
+    diff[d--] = 'UPDATE'
+    curNewi--
+    curOldi--
+    ptr = ptr.prev
+  }
+  while (curNewi >= newStart) {
+    diff[d--] = 'INSERT'
+    curNewi--
+  }
+  while (curOldi >= oldStart) {
+    diff[d--] = 'DELETE'
+    curOldi--
+  }
+  return diff
+}
+
+function findK (ktr, j) {
+  var lo = 1
+  var hi = ktr.length - 1
+  while (lo <= hi) {
+    var mid = Math.ceil((lo + hi) / 2)
+    if (j < ktr[mid]) hi = mid - 1
+    else lo = mid + 1
+  }
+  return lo
+}
