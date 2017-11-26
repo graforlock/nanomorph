@@ -135,45 +135,45 @@ function applyDiff (parent, a, b, diff, update) {
   }
 }
 
-function diffPrefix (s1, s2) {
-  var k = 0
-  var start1 = 0
-  var start2 = 0
-  var end1 = s1.length - 1
-  var end2 = s2.length - 1
-  var c1, c2
-  while (
-    start1 <= end1 &&
-    start2 <= end2 &&
-    canPatch(c1 = s1[start1], c2 = s2[start2])
-  ) {
-    walk(c1, c2)
-    start1++
-    start2++
-    k++
-  }
-  return k
-}
+// function diffPrefix (s1, s2) {
+//   var k = 0
+//   var start1 = 0
+//   var start2 = 0
+//   var end1 = s1.length - 1
+//   var end2 = s2.length - 1
+//   var c1, c2
+//   while (
+//     start1 <= end1 &&
+//     start2 <= end2 &&
+//     canPatch(c1 = s1[start1], c2 = s2[start2])
+//   ) {
+//     walk(c1, c2)
+//     start1++
+//     start2++
+//     k++
+//   }
+//   return k
+// }
 
-function diffSuffix (s1, s2) {
-  var k = 0
-  var start1 = 0
-  var start2 = 0
-  var end1 = s1.length - 1
-  var end2 = s2.length - 1
-  var c1, c2
-  while (
-    start1 <= end1 &&
-    start2 <= end2 &&
-    canPatch(c1 = s1[end1], c2 = s2[end2])
-  ) {
-    walk(c1, c2)
-    end1--
-    end2--
-    k++
-  }
-  return k
-}
+// function diffSuffix (s1, s2) {
+//   var k = 0
+//   var start1 = 0
+//   var start2 = 0
+//   var end1 = s1.length - 1
+//   var end2 = s2.length - 1
+//   var c1, c2
+//   while (
+//     start1 <= end1 &&
+//     start2 <= end2 &&
+//     canPatch(c1 = s1[end1], c2 = s2[end2])
+//   ) {
+//     walk(c1, c2)
+//     end1--
+//     end2--
+//     k++
+//   }
+//   return k
+// }
 
 function appendChildren (
   parent,
@@ -206,7 +206,7 @@ function removeChildren (
 }
 
 function canPatch (nodeA, nodeB) {
-  if (nodeA.tagName && nodeB.tagName) nodeA.tagName === nodeB.tagName
+  if (nodeA.tagName && nodeB.tagName) return nodeA.tagName === nodeB.tagName
   if (nodeA === nodeB) return true
 
   return false
@@ -239,10 +239,10 @@ function diffWithMap (
   var unkeyed = []
   var idxUnkeyed = 0
   var ch
-  var oldCh
+  // var oldCh
   var k
   var idxInOld
-  var key
+  // var key
 
   var newLen = newEnd - newStart + 1
   var oldLen = oldEnd - oldStart + 1
@@ -256,12 +256,12 @@ function diffWithMap (
   var link = Array(minLen)
 
   for (i = oldStart; i <= oldEnd; i++) {
-    oldCh = oldChildren[i]
-    key = oldCh.key
+    // oldCh = oldChildren[i]
+    // key = oldCh.key
     // if (key != null) {
     //   keymap[key] = i
     // } else {
-      unkeyed.push(i)
+    unkeyed.push(i)
     // }
   }
 
